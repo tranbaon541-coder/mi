@@ -1,1 +1,11 @@
-# mi
+let products=[],cart=JSON.parse(localStorage.cart||"[]");
+const money=n=>Number(n).toLocaleString("vi-VN")+"đ";
+async function load(){products=await fetch("/api/products").then(r=>r.json());renderProducts();renderCart()}
+function renderProducts(){document.querySelector("#products").innerHTML=products.map(p=>`<article class="card"><div class="pic">${p.emoji}</div><h3>${p.name}</h3><b>${money(p.price)}</b><button class="add" onclick="add(${p.id})">+ Thêm</button></article>`).join("")}
+function add(id){let x=cart.find(x=>x.productId===id);x?x.qty++:cart.push({productId:id,qty:1});save();openCart()}
+function change(id,d){let x=cart.find(x=>x.productId===id);if(!x)return;x.qty+=d;if(x.qty<1)cart=cart.filter(x=>x.productId!==id);save()}
+function save(){localStorage.cart=JSON.stringify(cart);renderCart()}
+function renderCart(){document.querySelector("#count").textContent=cart.reduce((a,x)=>a+x.qty,0);let sum=0;document.querySelector("#cart").innerHTML=cart.length?cart.map(x=>{let p=products.find(p=>p.id===x.productId);sum+=p.price*x.qty;return `<div class="row">${p.emoji} ${p.name}<span><button onclick="change(${p.id},-1)">−</button>${x.qty}<button onclick="change(${p.id},1)">+</button></span></div>`}).join(""):"Giỏ hàng trống.";document.querySelector("#total").textContent=money(sum)}
+function openCart(){renderCart();cartModal.classList.remove("hidden")}function closeCart(){cartModal.classList.add("hidden")}function checkout(){if(!cart.length)return alert("Giỏ hàng đang trống.");closeCart();formModal.classList.remove("hidden")}function closeForm(){formModal.classList.add("hidden")}
+async function submitOrder(e){e.preventDefault();const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.value,phone:phone.value,address:address.value,note:note.value,items:cart})});const data=await r.json();if(!r.ok)return alert(data.error||"Có lỗi.");alert(`Đặt hàng thành công! Mã đơn: ${data.code}`);cart=[];save();closeForm()}
+load();
